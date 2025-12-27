@@ -1,0 +1,18 @@
+github:
+  repo_url: "https://github.com/user/repo"
+  token: "${GITHUB_TOKEN}"  # Из env
+  pipelines_path: ".cicd/pipelines"  # Путь к YAML файлам
+
+users:
+  allowed_telegram_ids:
+    - 123456789
+    - 987654321
+
+docker:
+  memory_limit: "512m"
+  cpu_limit: "0.5"
+  socket_path: "/var/run/docker.sock"
+
+logging:
+  log_dir: "./logs"
+  log_file: "cicd.log"

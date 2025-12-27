@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  bot:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.bot
+    container_name: cicd-telegram-bot
+    restart: unless-stopped
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+    volumes:
+      - ./config:/app/config:ro
+      - ./logs:/app/logs
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - cicd-network
+
+networks:
+  cicd-network:
+    driver: bridge
