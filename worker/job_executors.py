@@ -68,7 +68,8 @@ class ConfirmationJobExecutor:
             inline_keyboard=[
                 [
                     InlineKeyboardButton(
-                        text="✅ Подтвердить", callback_data=f"confirm_{job_id}_{job_name}"
+                        text="✅ Подтвердить",
+                        callback_data=f"confirm_{job_id}_{job_name}",
                     ),
                     InlineKeyboardButton(
                         text="❌ Отменить", callback_data=f"cancel_{job_id}_{job_name}"

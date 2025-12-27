@@ -19,12 +19,12 @@ class PipelineOrchestrator:
         self.running_jobs: Dict[int, Dict[str, Any]] = {}  # job_id -> job_info
         self._job_counter = 0
         self.bot = bot
-    
+
     def _generate_job_id(self) -> int:
         """Генерирует уникальный ID для задания"""
         self._job_counter += 1
         return self._job_counter
-    
+
     async def discover_pipelines(self) -> Dict[str, Any]:
         """Автоматически обнаруживает и загружает пайплайны из GitHub"""
         try:
@@ -78,7 +78,7 @@ class PipelineOrchestrator:
         for name, info in pipelines.items():
             result[name] = info.get("auto_run", False)
         return result
-    
+
     async def run_pipeline(
         self,
         pipeline_name: str,
@@ -88,26 +88,26 @@ class PipelineOrchestrator:
     ) -> int:
         """
         Запускает выполнение пайплайна
-        
+
         Args:
             pipeline_name: Имя файла пайплайна (например, "pipeline.yaml")
             telegram_user_id: ID пользователя Telegram
-        
+
         Returns:
             job_id - ID созданного задания
-        
+
         Raises:
             Exception: Если не удалось загрузить или распарсить конфигурацию
         """
         job_id = self._generate_job_id()
-        
+
         try:
             # Загружаем YAML из GitHub
             yaml_content = self.git_service.get_pipeline_yaml(pipeline_name)
-            
+
             # Парсим конфигурацию
             pipeline_config = self.yaml_parser.parse(yaml_content)
-            
+
             # Сохраняем информацию о задании
             self.running_jobs[job_id] = {
                 "pipeline_name": pipeline_name,
@@ -127,26 +127,24 @@ class PipelineOrchestrator:
             asyncio.create_task(self._execute_pipeline(job_id))
 
             return job_id
-            
+
         except Exception as e:
             await self.logger.log_error(
-                job_id,
-                "orchestrator",
-                f"Ошибка запуска пайплайна: {str(e)}"
+                job_id, "orchestrator", f"Ошибка запуска пайплайна: {str(e)}"
             )
             raise
-    
+
     async def _execute_pipeline(self, job_id: int) -> None:
         """
         Выполняет пайплайн асинхронно
-        
+
         Args:
             job_id: ID задания
         """
         job_info = self.running_jobs.get(job_id)
         if not job_info:
             return
-        
+
         try:
             job_info["status"] = "running"
             job_info["started_at"] = asyncio.get_event_loop().time()
@@ -182,7 +180,9 @@ class PipelineOrchestrator:
 
             # Финальное обновление сообщения
             if chat_id and message_id and self.bot:
-                await self._update_status_message(job_id, chat_id, message_id, final=True)
+                await self._update_status_message(
+                    job_id, chat_id, message_id, final=True
+                )
                 pipeline_name = job_info.get("pipeline_name", "unknown")
                 status_emoji = "✅" if result["status"] == "success" else "❌"
                 await self.bot.send_message(
@@ -233,9 +233,7 @@ class PipelineOrchestrator:
         except Exception:
             pass  # Игнорируем ошибки редактирования
 
-    async def _periodic_status_update(
-        self, job_id: int, chat_id: int, message_id: int
-    ):
+    async def _periodic_status_update(self, job_id: int, chat_id: int, message_id: int):
         """Периодически обновляет статус в сообщении"""
         while True:
             await asyncio.sleep(5)  # Обновляем каждые 5 секунд
@@ -247,42 +245,44 @@ class PipelineOrchestrator:
             status = status_info.get("status")
             if status in ("success", "failed", "cancelled"):
                 # Финальное обновление
-                await self._update_status_message(job_id, chat_id, message_id, final=True)
+                await self._update_status_message(
+                    job_id, chat_id, message_id, final=True
+                )
                 break
 
             await self._update_status_message(job_id, chat_id, message_id)
-    
+
     def get_job_status(self, job_id: int) -> Optional[Dict[str, Any]]:
         """
         Получает статус задания
-        
+
         Args:
             job_id: ID задания
-        
+
         Returns:
             Словарь с информацией о задании или None
         """
         job_info = self.running_jobs.get(job_id)
         if not job_info:
             return None
-        
+
         return {
-            'job_id': job_id,
-            'pipeline_name': job_info.get('pipeline_name'),
-            'status': job_info.get('status'),
-            'started_at': job_info.get('started_at'),
-            'finished_at': job_info.get('finished_at'),
-            'result': job_info.get('result'),
-            'error': job_info.get('error')
+            "job_id": job_id,
+            "pipeline_name": job_info.get("pipeline_name"),
+            "status": job_info.get("status"),
+            "started_at": job_info.get("started_at"),
+            "finished_at": job_info.get("finished_at"),
+            "result": job_info.get("result"),
+            "error": job_info.get("error"),
         }
-    
+
     async def get_job_logs(self, job_id: int) -> str:
         """
         Получает логи задания
-        
+
         Args:
             job_id: ID задания
-        
+
         Returns:
             Логи задания как строка
         """
@@ -301,6 +301,7 @@ def get_orchestrator(bot=None) -> PipelineOrchestrator:
     elif bot and not _orchestrator_instance.bot:
         _orchestrator_instance.bot = bot
         from worker.job_executors import ConfirmationJobExecutor
+
         _orchestrator_instance.job_processor.confirmation_executor = (
             ConfirmationJobExecutor(bot)
         )

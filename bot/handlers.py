@@ -129,7 +129,7 @@ async def cmd_list(message: Message):
         await message.answer("⏳ Загружаю список пайплайнов...")
 
         pipelines = await orchestrator.list_pipelines()
-        
+
         if not pipelines:
             await message.answer("📭 Пайплайны не найдены.")
         else:
@@ -155,16 +155,15 @@ async def cmd_run(message: Message):
         parts = message.text.split(maxsplit=1)
         if len(parts) < 2:
             await message.answer(
-                "❌ Укажите имя пайплайна.\n"
-                "Пример: /run pipeline.yaml"
+                "❌ Укажите имя пайплайна.\n" "Пример: /run pipeline.yaml"
             )
             return
-        
+
         pipeline_name = parts[1].strip()
         user_id = message.from_user.id
-        
+
         await message.answer(f"🚀 Запускаю пайплайн: {pipeline_name}...")
-        
+
         chat_id = message.chat.id if message.chat.type != "private" else None
         message_id = None
 
@@ -177,7 +176,7 @@ async def cmd_run(message: Message):
         job_id = await orchestrator.run_pipeline(
             pipeline_name, user_id, chat_id=chat_id, message_id=message_id
         )
-        
+
         await message.answer(
             f"✅ Пайплайн запущен!\n"
             f"Job ID: {job_id}\n\n"
@@ -200,56 +199,53 @@ async def cmd_status(message: Message):
         # Извлекаем job_id из команды
         parts = message.text.split(maxsplit=1)
         if len(parts) < 2:
-            await message.answer(
-                "❌ Укажите ID задания.\n"
-                "Пример: /status 1"
-            )
+            await message.answer("❌ Укажите ID задания.\n" "Пример: /status 1")
             return
-        
+
         try:
             job_id = int(parts[1].strip())
         except ValueError:
             await message.answer("❌ ID задания должен быть числом.")
             return
-        
+
         status_info = orchestrator.get_job_status(job_id)
-        
+
         if not status_info:
             await message.answer(f"❌ Задание с ID {job_id} не найдено.")
             return
-        
+
         # Формируем ответ
         status_emoji = {
-            'pending': '⏳',
-            'running': '🔄',
-            'success': '✅',
-            'failed': '❌',
-            'cancelled': '🚫'
+            "pending": "⏳",
+            "running": "🔄",
+            "success": "✅",
+            "failed": "❌",
+            "cancelled": "🚫",
         }
-        
-        emoji = status_emoji.get(status_info['status'], '❓')
-        status_text = status_info['status'].upper()
-        
+
+        emoji = status_emoji.get(status_info["status"], "❓")
+        status_text = status_info["status"].upper()
+
         response = f"{emoji} Статус задания {job_id}:\n\n"
         response += f"Пайплайн: {status_info.get('pipeline_name', 'N/A')}\n"
         response += f"Статус: {status_text}\n"
-        
-        if status_info.get('started_at'):
+
+        if status_info.get("started_at"):
             response += f"Запущено: {status_info['started_at']}\n"
-        
-        if status_info.get('finished_at'):
+
+        if status_info.get("finished_at"):
             response += f"Завершено: {status_info['finished_at']}\n"
-        
-        if status_info.get('result'):
-            result = status_info['result']
+
+        if status_info.get("result"):
+            result = status_info["result"]
             response += f"\nJobs выполнено: {result.get('jobs_completed', 0)}\n"
             response += f"Jobs с ошибками: {result.get('jobs_failed', 0)}\n"
-        
-        if status_info.get('error'):
+
+        if status_info.get("error"):
             response += f"\nОшибка: {status_info['error']}\n"
-        
+
         await message.answer(response)
-        
+
     except Exception as e:
         await message.answer(f"❌ Ошибка при получении статуса: {str(e)}")
 
@@ -266,53 +262,52 @@ async def cmd_logs(message: Message):
         # Извлекаем job_id из команды
         parts = message.text.split(maxsplit=1)
         if len(parts) < 2:
-            await message.answer(
-                "❌ Укажите ID задания.\n"
-                "Пример: /logs 1"
-            )
+            await message.answer("❌ Укажите ID задания.\n" "Пример: /logs 1")
             return
-        
+
         try:
             job_id = int(parts[1].strip())
         except ValueError:
             await message.answer("❌ ID задания должен быть числом.")
             return
-        
+
         logs = await orchestrator.get_job_logs(job_id)
-        
+
         if not logs:
             await message.answer(f"📭 Логи для задания {job_id} не найдены.")
             return
-        
+
         # Telegram имеет лимит на длину сообщения (4096 символов)
         # Разбиваем логи на части если нужно
         max_length = 4000
-        
+
         if len(logs) <= max_length:
-            await message.answer(f"📋 Логи задания {job_id}:\n\n<pre>{logs}</pre>", parse_mode="HTML")
+            await message.answer(
+                f"📋 Логи задания {job_id}:\n\n<pre>{logs}</pre>", parse_mode="HTML"
+            )
         else:
             # Отправляем последние N строк, которые помещаются
-            lines = logs.split('\n')
+            lines = logs.split("\n")
             response_lines = []
             current_length = 0
-            
+
             for line in reversed(lines):
-                line_with_newline = line + '\n'
+                line_with_newline = line + "\n"
                 if current_length + len(line_with_newline) > max_length:
                     break
                 response_lines.insert(0, line_with_newline)
                 current_length += len(line_with_newline)
-            
-            response = ''.join(response_lines)
+
+            response = "".join(response_lines)
             await message.answer(
                 f"📋 Последние логи задания {job_id}:\n\n<pre>{response}</pre>",
-                parse_mode="HTML"
+                parse_mode="HTML",
             )
             await message.answer(
                 f"ℹ️ Показаны последние {len(response_lines)} строк. "
                 f"Полные логи доступны в файле."
             )
-        
+
     except Exception as e:
         await message.answer(f"❌ Ошибка при получении логов: {str(e)}")
 
